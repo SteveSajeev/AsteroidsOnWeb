@@ -21,4 +21,28 @@ class Utils {
         let y = Math.sin(rad);
         return this.Vector(x,y);
     }
-}
+    static getAngleBetweenPoints(origin, target){
+        let a = (Math.atan2(target.y - origin.y, target.x - origin.x)) * 180 / Math.PI;
+        return a;
+    }
+
+    static DrawPoints(origin, points, ctx, method="stroke"){
+        /* points -> array of {x,y} objects or Utils.Vector
+         * ctx    -> Context of canvas to draw to
+         * method -> "stroke" or "fill" will be called */
+
+        ctx.beginPath();
+        points.forEach((p,i)=>{
+            if(i == 0){
+                ctx.moveTo(origin.x + p.x, origin.y + p.y);
+                return;
+            }
+            ctx.lineTo(origin.x + p.x, origin.y + p.y);
+            if(i == points.length-1){
+                ctx.lineTo(origin.x+points[0].x, origin.y+points[0].y)
+            }
+        })
+        ctx.stroke();
+    }
+
+} 

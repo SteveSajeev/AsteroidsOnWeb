@@ -3,8 +3,10 @@ class Game {
     constructor(ctx){
         this.ctx = ctx;
         this.rocket = new Rocket();
-
         this.stars = [];
+        this.rocks = [];
+
+
         for(let i = 0; i < 40; i++){
             this.stars.push({
                 x:Math.random()*canvas.width,
@@ -12,13 +14,23 @@ class Game {
                 radius:Math.random()+0.2,
             });
         }
+
+        for(let i = 0; i < 1; i++){
+            this.rocks.push(new Rock(this));
+        }
+
+        
     }
 
     update(){
         requestAnimationFrame(this.update.bind(this));
         //setTimeout(this.update.bind(this), 500);
-
+        
         this.rocket.update();
+
+        this.rocks.forEach((r)=>{
+            r.update();
+        });
         this.draw();
     }
     draw(){
@@ -39,8 +51,12 @@ class Game {
             ctx.beginPath();
             ctx.arc(s.x,s.y,s.radius,0,Math.PI*2);
             ctx.fill();
+            ctx.closePath();
         });
 
+        this.rocks.forEach((r)=>{
+            r.draw();
+        });
         this.rocket.draw();
     }
 }
