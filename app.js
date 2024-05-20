@@ -3,17 +3,14 @@ const ctx = canvas.getContext("2d");
 const info = document.getElementById("info");
 let key = [];
 
-
-
 function main(){
-
-    handleResize();
+    handleResize(); // init browser window sizing with canvas
     let game = new Game(ctx);
     window.game = game;
     game.update();
-
 }
 var a = 0;
+/*
 function update() {
     requestAnimationFrame(update);
     ctx.clearRect(0,0,canvas.width, canvas.height);
@@ -23,7 +20,9 @@ function update() {
         ctx.fillRect(c.x + p.x, c.y + p.y, 5,5);
     })
     point = Utils.rotatePoints(point, a/180);
+
 }
+*/
 
 const handleResize = () => {
     canvas.width = innerWidth;
@@ -31,12 +30,20 @@ const handleResize = () => {
 }
 const handleKeydown = (e) => {
     key[e.keyCode] = true;
-    console.log(e.keyCode)
 }
 const handleKeyup = (e) => {
     key[e.keyCode] = false;
+}
+const handleMouseDown = (e) => {
+	let angle = Utils.getAngleBetweenPoints(game.rocket.p, Utils.Vector(e.clientX + game.camera.x, e.clientY + game.camera.y));
+	game.rocket.shoot(angle);
+}
+const handleMouseUp = (e) => {
 }
 window.addEventListener("load", main);
 window.addEventListener("resize", handleResize);
 window.addEventListener("keydown", handleKeydown);
 window.addEventListener("keyup", handleKeyup);
+window.addEventListener("mousedown", handleMouseDown);
+window.addEventListener("mouseup", handleMouseUp);
+

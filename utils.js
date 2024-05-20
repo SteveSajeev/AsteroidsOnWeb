@@ -34,12 +34,12 @@ class Utils {
         ctx.beginPath();
         points.forEach((p,i)=>{
             if(i == 0){
-                ctx.moveTo(origin.x + p.x, origin.y + p.y);
+                ctx.moveTo(origin.x + p.x - game.camera.x , origin.y + p.y - game.camera.y);
                 return;
             }
-            ctx.lineTo(origin.x + p.x, origin.y + p.y);
+            ctx.lineTo(origin.x + p.x - game.camera.x, origin.y + p.y - game.camera.y);
             if(i == points.length-1){
-                ctx.lineTo(origin.x+points[0].x, origin.y+points[0].y)
+                ctx.lineTo(origin.x+points[0].x-game.camera.x, origin.y+points[0].y-game.camera.y)
             }
         })
         ctx.stroke();
