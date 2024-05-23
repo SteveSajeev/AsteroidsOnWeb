@@ -9,8 +9,7 @@ class Game {
 
         for(let i = 0; i < 40; i++){
             this.stars.push({
-                x:Math.random()*canvas.width,
-                y:Math.random()*canvas.height,
+				p: new Vector(  Math.random()*canvas.width, Math.random()*canvas.height  ),
                 radius:Math.random()+0.2,
             });
         }
@@ -23,6 +22,7 @@ class Game {
     }
 
     update(timestamp){
+		// Calculates time passed for timer based functions (bullet time left, etc)
 		if(timestamp === undefined){
 			timestamp = 0;
 		}
@@ -32,21 +32,23 @@ class Game {
 		const elapsed = timestamp - this.prevstamp; 
 		this.prevstamp = timestamp;
 
+		// Object updates
         this.rocket.update(elapsed);
-
         this.rocks.forEach((r)=>{
             r.update();
         });
 
-		this.camera.target.x = this.rocket.p.x;
-		this.camera.target.y = this.rocket.p.y;
 
+		// Camera
+		this.camera.target = this.rocket.p.copy();
 		this.camera.update();
 
+
+		// Draw
 		this.draw();
 
         requestAnimationFrame(this.update.bind(this));
-        //setTimeout(this.update.bind(this), 500);
+        //setTimeout(this.update.bind(this), 80);
     }
     draw(){
 
@@ -55,16 +57,17 @@ class Game {
         ctx.fillStyle = "white";
         ctx.strokeStyle = "white";
 
-        this.stars.forEach((s)=>{
-            s.x += s.radius/12;
-            s.y += s.radius/8;
-            if(s.x > canvas.width){s.x = 0}
-            if(s.x < 0){s.x = canvas.width}
-            if(s.y > canvas.height){s.y = 0}
-            if(s.y < 0){s.y = canvas.height}
+        this.stars.forEach((star)=>{
+            star.p.x += star.radius/12;
+            star.p.y += star.radius/12;
+            if(star.p.x > canvas.width){star.p.x = 0};
+            if(star.p.x < 0){star.p.x = canvas.width};
+            if(star.p.y > canvas.height){star.p.y = 0};
+            if(star.p.y < 0){star.p.y = canvas.height};
 
             ctx.beginPath();
-            ctx.arc(s.x - this.camera.x,s.y - this.camera.y,s.radius,0,Math.PI*2);
+			let sPos = this.camera.calcPos(star.p); // Calculates the positions on the screen according to camera
+            ctx.arc(sPos.x, sPos.y, star.radius,0,Math.PI*2);
             ctx.fill();
             ctx.closePath();
         });
