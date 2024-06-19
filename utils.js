@@ -60,41 +60,17 @@ Vector.prototype.multiplyApply = function(a){
 		this.y *= a;
 	}
 }
-
-/*
-class Vector {
-	constructor(x=0,y=0) {
-		this.x = x;
-		this.y = y;
-	}
-
-	// Static: Call this to return a new vector with same properties of the passed on vector  (for copying a vector to a new vector)
-	static fromVect(v){
-		return new this(v.x, v.y);
-	}
-	static add(a, b){
-		// Returns the added result of two vectors
-		return new Vector(a.x + b.x, a.y + b.y);
-	}
-	static subtract(a, b){
-		// Returns the added result of two vectors
-		return new Vector(a.x - b.x, a.y - b.y);
-	}
-	static multiply(a,b){
-		return new Vector(a.x * b.x, a.y * b.y);
-	}
-	static divide(a,b){
-		// a divided by b
-		return new Vector(a.x / b.x, a.y / b.y);
-	}
-
-
-	set(x,y){
-		this.x = x;
-		this.y = y;
-	}
+Vector.prototype.normalise = function(){
+	return this.divide(Utils.getDist(new Vector(0,0), this));
 }
-*/
+Vector.prototype.normaliseApply = function(){
+	return this.divideApply(Utils.getDist(new Vector(0,0), this));
+}
+Vector.prototype.getMagnitude = function(){
+	return Utils.getDist(new Vector(0,0), this);
+}
+
+
 class Utils {
     static rotatePoint (Vect,a){
         var {x,y} = Vect;
@@ -104,6 +80,14 @@ class Utils {
         Y = -Y;
         return new Vector(X,Y);
     }
+
+	static getDist(v1,v2){
+		let x = v2.x - v1.x;
+		let y = v2.y - v1.y;
+		let dist = Math.sqrt(x*x + y*y);
+		return dist;
+	}
+
     static rotatePoints (VectArr,a){
         let newPoints = [];
         VectArr.forEach((p) => {

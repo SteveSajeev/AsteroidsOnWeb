@@ -4,19 +4,40 @@ class Camera { // {{{
 
 	target = new Vector(0,0);
 	constructor(x,y,width,height){
-		this.p = new Vector(x,y);
+		this.op = new Vector(x,y); // Original Position  -> pos of actual camera, follows target
+		this.p = this.op.copy();   // pos -> follows closely to op, with extra effects, shake, etc   (should be used for final translating)
+
 		this.width = width;
 		this.height = height;
+		this.shaking = 0;
+		this.originalPos = this.p.copy();
 	}
 
 	update(){
-		this.p.x += (this.target.x - this.p.x - this.width/2) * 0.3;
-		this.p.y += (this.target.y - this.p.y - this.height/2) * 0.3;
+		this.op.x += (this.target.x - this.op.x - this.width/2) * 0.3;
+		this.op.y += (this.target.y - this.op.y - this.height/2) * 0.3;
+
+		this.p.set(this.op.x, this.op.y);
+		this.p.set(this.target.x-this.width/2, this.target.y-this.height/2);
+
+		if(this.shaking > 0){
+			this.p.x += (4+this.shaking) * Math.random();
+			this.p.y += (4+this.shaking) * Math.random();
+			this.shaking--;
+		}
+	}
+
+	shake(){
+		this.shaking = 7;
 	}
 
 	calcPos(vect){
 		// Returns a calculated position that translates world positions to screen positions with respect to this camera
 		return vect.subtract(this.p);
+	}
+	calcPosParallax(vect, parallax){
+		// Returns a calculated position that translates world positions to screen positions with respect to this camera
+		return vect.subtract(this.p.divide(parallax));
 	}
 } // }}}
 
@@ -30,45 +51,81 @@ class Rocket { //{{{
     v = new Vector(0,0); // Velocity
     a = new Vector(0,0); // Acceleration
 
-	friction = 1.05;
+	friction = 0.85; // Inverse (more of this value, less friction)
 	bullets = [];
 
     constructor(x,y){
         this.p = new Vector(canvas.width/2, canvas.height/2);
+		for(let i = 0; i < 3; i++){
+			this.points[i].x += 5;
+		}
     }
 
-    update(elapsed){
+    update(delta){
 		this.a.set(0,0);
 
-		this.v.divideApply(this.friction);
+		this.xRatio = 1 + (delta * this.friction);
+		//this.v.divideApply(this.xRatio)
+		this.v.multiplyApply(Math.pow(this.friction, delta))
 		
-        //this.v.y /= this.friction;
-        //this.v.x /= this.friction; 
 
-        if(key[38] == true){
+        if(key[87] == true){
             // Thrust forward
             let thrustAcc = Utils.getForceByAngle(this.rotation);
-			this.a = thrustAcc.copy();
+			this.a = thrustAcc.copy().normalise();
+			this.a.multiplyApply(600);
         }else {
 			this.a.set(0,0);
         }
-        if(key[37] == true){
-            this.rotation -= 5;
-            if(this.rotation < 0){this.rotation += 360}
+        if(key[65] == true){
+            this.rotation -= 250 * delta; 
         }
-        if(key[39] == true){
-            this.rotation += 5;
-            if(this.rotation >= 360){this.rotation -= 360}
+        if(key[68] == true){
+            this.rotation += 250 * delta;
         }
+        if(this.rotation < 0){this.rotation += 360}
+        if(this.rotation >= 360){this.rotation -= 360}
 
 		// updating all bullets
 		for(let i = 0; i < this.bullets.length; i++){
-			this.bullets[i].p.addApply(this.bullets[i].v);
+			this.bullets[i].v.multiplyApply(1);
 
-			this.bullets[i].p.multiplyApply(0.99);
+			let bullet = this.bullets[i];
 
-			this.bullets[i].timeRemaining -= elapsed;
+			let hit = false;
+			for(let a = 0; a < game.rocks.length; a++){
+				let rock = game.rocks[a];
 
+				let dist = Utils.getDist(bullet.p, rock.p);
+
+				if(dist < rock.radius + bullet.radius){
+					game.rocks.splice(a, 1);
+					hit = true;
+					game.camera.shake();
+					break;
+				} else if (dist < rock.radius + bullet.radius + 30){
+					// Extra check that divides the previus velocity by 2, and finds the new pos, and uses the half pos to check collision
+					console.log("Closeby" + Math.random())
+					let halfdist = Utils.getDist(bullet.p.subtract(bullet.v.divide(2).multiply(delta)), rock.p);
+					if(halfdist < rock.radius + bullet.radius){
+						console.log("Kill from extra check");
+						game.rocks.splice(a, 1);
+						hit = true;
+						game.camera.shake();
+						break;
+					}
+				}
+
+			}
+			if(hit){
+				this.bullets.splice(i, 1);
+				continue;
+			}
+
+			this.bullets[i].p.addApply(this.bullets[i].v.multiply(delta));
+
+
+			this.bullets[i].timeRemaining -= delta;
 			if(this.bullets[i].timeRemaining < 0){
 				this.bullets.splice(i, 1);
 				i -= 1;
@@ -76,70 +133,93 @@ class Rocket { //{{{
 
 		}
 
-		this.v.addApply(this.a);
-		this.p.addApply(this.v);
+		if(this.v.getMagnitude() > 700){
+			this.v.normaliseApply();
+			this.v.multiplyApply(700);
+		} else if(this.v.getMagnitude() < 1){
+			this.v.set(0,0);
+		}
+
+
+
+		this.p.addApply(this.v.multiply(delta));    // delta is not multiply 'applied'
+		this.v.addApply(this.a.multiply(delta));
     }
 
 	shoot(angle){
 		let force = Utils.getForceByAngle(angle);
-		force.multiplyApply(30);
+		force.normaliseApply();
+		force.multiplyApply(3000);
+		force.addApply(this.v);
 
 
 		this.bullets.push({
 			p: this.p.copy(),
+			radius: 3,
 			v: force,
-			timeRemaining: 7000,
+			timeRemaining: 7,
 		});
+		game.camera.shake();
 	}
 
     draw (){
         let points = Utils.rotatePoints(this.points, Math.PI/180 * this.rotation);
         Utils.DrawPoints(this.p, points, ctx, "stroke");
 		
+		game.ctx.fillText("Acc " + Math.round(this.a.x) + "  " + Math.round(this.a.y), 10, 200);
+		game.ctx.fillText("Vel " + Math.round(this.v.x )+ "  " + Math.round(this.v.y), 10, 220);
+		game.ctx.fillText("Mag " + this.v.getMagnitude(), 10, 240);
+		game.ctx.fillText("Rot " + this.rotation, 10, 250);
 		// drawing all bullets
 		for(let i = 0; i < this.bullets.length; i++){
 			ctx.beginPath();
 			let bulletPos = game.camera.calcPos(this.bullets[i].p);
-			ctx.arc(bulletPos.x, bulletPos.y, 5, 0, Math.PI*2);
+			ctx.arc(bulletPos.x, bulletPos.y, this.bullets[i].radius, 0, Math.PI*2);
 			ctx.fill();
 			ctx.closePath();
 		}
     }
 }
 // }}}
+
 class Rock { // {{{
-    p = [];                 // Position Vector
+	p = new Vector(0,0); 	// Position Vector
     v = new Vector(0,0);  // Velocity Vector
     points = [];            // Points (autogenerated)
 
     constructor(game){
-        let x,y = 0;
         if(Math.random()>=0.5){
-            x = -(Math.random()*100);
+            this.p.x = -(Math.random()*100);
         } else {
-            x = canvas.width + (Math.random()*100);
+            this.p.x = canvas.width + (Math.random()*100);
         }
         if(Math.random()>=0.5){
-            y = -(Math.random()*100);
+            this.p.y = -(Math.random()*100);
         } else {
-            y = canvas.height + (Math.random()*100);
+            this.p.y = canvas.height + (Math.random()*100);
         }
-        this.p = new Vector(x,y);
 
         
-        let r = Math.random()*30+10; // approx. radius
 
         // Constructing random rock figure
-        for(let i = 0; i < 6; i+=0.7){
-            let x = Math.sin(i)*r;
-            let y = Math.cos(i)*r;
-            let a =Math.random();
-            x += a*x
-            y += a*y
-            this.points.push(new Vector(
-                x,y
-            ));
+        let r = Math.random()*30+10; // approx. radius
+
+		this.sr = r;
+		let individualRadii = []; // Each lines length (radius) is kept track to find the average radius of the rock
+        for(let i = 0; i < 6; i+=6/9){
+            let individualRadius = r + (Math.random()*20)-10;
+            let x = Math.sin(i)*individualRadius;
+            let y = Math.cos(i)*individualRadius;
+			individualRadii.push(individualRadius);
+            this.points.push(new Vector(x,y));
         }
+
+		let sum = 0;
+		individualRadii.forEach((indR) => {
+			sum += indR;
+		});
+		this.radius = sum / (individualRadii.length); //average
+
 
 
         // Initial velocity
@@ -150,12 +230,24 @@ class Rock { // {{{
     }
 
     update(){
-        this.p.x += this.v.x;
-        this.p.y += this.v.y;
+		this.p.addApply(this.v);
     }
 
     draw(){
         Utils.DrawPoints(this.p, this.points, ctx, "stroke");
+		return;
+		//debug
+		/*
+		game.ctx.beginPath();
+		game.ctx.arc(this.p.x, this.p.y, this.sr, 0, Math.PI*2);
+		game.ctx.stroke();
+		game.ctx.beginPath();
+		game.ctx.strokeStyle = "lightgreen";
+		game.ctx.arc(this.p.x, this.p.y, this.radius, 0, Math.PI*2);
+		game.ctx.stroke();
+		game.ctx.closePath();
+		game.ctx.strokeStyle= "white";
+		*/
     }
 }
 // }}}
