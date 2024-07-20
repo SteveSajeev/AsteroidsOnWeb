@@ -1,4 +1,4 @@
-
+// {{{
 function Vector(x,y){
 	this.x = x;
 	this.y = y;
@@ -69,6 +69,7 @@ Vector.prototype.normaliseApply = function(){
 Vector.prototype.getMagnitude = function(){
 	return Utils.getDist(new Vector(0,0), this);
 }
+// }}}
 
 
 class Utils {

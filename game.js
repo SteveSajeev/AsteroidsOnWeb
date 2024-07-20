@@ -1,5 +1,7 @@
 class Game {
 	prevstamp = 0;
+	initialStamp = 0;
+	lastrocktime = 0;
     constructor(ctx){
         this.ctx = ctx;
         this.rocket = new Rocket();
@@ -18,8 +20,9 @@ class Game {
             });
         }
 
-        for(let i = 0; i < 10; i++){
-            this.rocks.push(new Rock(this));
+		// Initial rocks
+        for(let i = 0; i < 5; i++){
+            this.rocks.push(new Rock(this, new Vector(Math.random()*canvas.width, Math.random()*canvas.height)));
         }
 
         
@@ -29,11 +32,27 @@ class Game {
     update(){
 		// Calculates time passed for timer based functions (bullet time left, etc)
 		let timestamp = window.performance.now() || 0; // || 0 eliminated undefined condition
+		if(this.initialStamp == 0){
+			this.initialStamp = timestamp; // Marks First frame
+		} 
+		let timerun = timestamp - this.initialStamp;
 
 		let delta = (timestamp - this.prevstamp)/1000;  // around 60fps
 		delta = Math.min(delta, 0.04); // Minimum value to make sure delta does not go too high
 		
 		this.prevstamp = timestamp;
+
+
+
+
+		// Adding rocks to scene
+		if(this.lastrocktime + 4000 < timerun){
+			for(let i = 0; i < 4; i++){
+				this.rocks.push(new Rock(this));
+			}
+			this.lastrocktime = timerun;
+		}
+
 
 		// Object updates
         this.rocket.update(delta);
