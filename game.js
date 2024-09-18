@@ -38,7 +38,7 @@ class Game {
 		let timerun = timestamp - this.initialStamp;
 
 		let delta = (timestamp - this.prevstamp)/1000;  // around 60fps
-		delta = Math.min(delta, 0.04); // Minimum value to make sure delta does not go too high
+		delta = Math.min(delta, 0.04); // Setting max limit at 0.04 to make sure delta does not go too high
 		
 		this.prevstamp = timestamp;
 
@@ -46,19 +46,21 @@ class Game {
 
 
 		// Adding rocks to scene
-		if(this.lastrocktime + 4000 < timerun){
+		/*if(this.lastrocktime + 4000 < timerun){
 			for(let i = 0; i < 4; i++){
 				this.rocks.push(new Rock(this));
 			}
 			this.lastrocktime = timerun;
-		}
+		}*/
 
 
 		// Object updates
-        this.rocket.update(delta);
-        this.rocks.forEach((r)=>{
-            r.update();
-        });
+		if(this.rocket.isAlive){
+  	    	this.rocket.update(delta);
+			this.rocks.forEach((r)=>{
+				r.update();
+			});
+		}
 
 
 		// Camera
@@ -88,33 +90,52 @@ class Game {
     }
     draw(){
 
-		ctx.fillStyle = "black";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.fillStyle = "white";
-        ctx.strokeStyle = "white";
+		this.ctx.fillStyle = "black";
+        this.ctx.fillRect(0,0,canvas.width,canvas.height);
+        this.ctx.fillStyle = "white";
+        this.ctx.strokeStyle = "white";
 
         this.stars.forEach((star)=>{
-            star.p.x += star.radius/12;
-            star.p.y += star.radius/12;
 			let sPos = this.camera.calcPosParallax(star.p, 1/star.radius); // Calculates the positions on the screen according to camera
+			if(star.lastCalcPos == undefined){
+				star.lastCalcPos = sPos;
+			}
             if(sPos.x > canvas.width){
 				star.p.x -= canvas.width
+				star.lastCalcPos.x -= canvas.width; // for the trailing effect also to work when the star crosses the borders
+				sPos.x -= canvas.width;
 			};
             if(sPos.x < 0){
 				star.p.x += canvas.width
+				star.lastCalcPos.x += canvas.width;
+				sPos.x += canvas.width;
 			};
             if(sPos.y > canvas.height){
 				star.p.y -= canvas.height;
+				star.lastCalcPos.y -= canvas.height;
+				sPos.y -= canvas.height;
 			};
             if(sPos.y < 0){
 				star.p.y +=  canvas.height;
+				star.lastCalcPos.y += canvas.height;
+				sPos.y += canvas.height;
 			};
 
-            ctx.beginPath();
+            this.ctx.beginPath();
             ctx.arc(sPos.x, sPos.y, star.radius,0,Math.PI*2);
-            ctx.fill();
-            ctx.closePath();
+			this.ctx.fill();
+
+			if(star.radius > 1){
+				// Only trail for considerably big stars
+				this.ctx.beginPath();
+				this.ctx.moveTo(sPos.x, sPos.y);
+				this.ctx.lineTo(star.lastCalcPos.x, star.lastCalcPos.y);
+				this.ctx.stroke();
+			}
+            this.ctx.closePath();
 			
+			// For trail effect
+			star.lastCalcPos = sPos;
         });
 
         this.rocks.forEach((r)=>{

@@ -37,7 +37,7 @@ const handleKeyup = (e) => {
 const handleMouseDown = (e) => {
 	// Adds camera pos to translate screen position to world position
 	let angle = Utils.getAngleBetweenPoints(game.rocket.p, new Vector(e.clientX + game.camera.p.x, e.clientY + game.camera.p.y));
-	game.rocket.shoot(angle);
+	//game.rocket.shoot(angle);
 }
 const handleMouseUp = (e) => {
 }
