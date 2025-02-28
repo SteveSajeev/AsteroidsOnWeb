@@ -2,8 +2,10 @@
 class Camera { // {{{
 
 
-	constructor(x,y,width,height){
+	constructor(x,y,width,height,ctx){
+		this.ctx = ctx;
 		this.target = new Vector(0,0);
+		// Position of camera is not with respect to camera center, it is instead camera's top left corner
 		this.op = new Vector(x,y); // Original Position  -> pos of actual camera, follows target
 		this.p = this.op.copy();   // pos -> follows closely to op, with extra effects, shake, etc   (should be used for final translating)
 
@@ -45,7 +47,53 @@ class Camera { // {{{
 		// Returns a calculated position that translates world positions to screen positions with respect to this camera
 		return vect.subtract(this.p.divide(parallax));
 	}
+
+
+	fillRect(x,y,width,height){
+		let pos = this.calcPos(new Vector(x,y));
+		this.ctx.fillRect(pos.x, pos.y, width, height);
+	}
+
+    drawPath(origin, points, method="stroke"){
+        /* points -> array of {x,y} objects or Vector
+         * ctx    -> Context of canvas to draw to
+         * method -> "stroke" or "fill" will be called */
+
+        this.ctx.beginPath();
+        points.forEach((p,i)=>{
+			let screenP = this.calcPos(origin.add(p));
+            if(i == 0){
+                this.ctx.moveTo(screenP.x, screenP.y);
+                return;
+            }
+            this.ctx.lineTo(screenP.x, screenP.y);
+            if(i == points.length-1){
+				screenP = this.calcPos(origin.add(points[0]));
+				this.ctx.lineTo(screenP.x, screenP.y);
+            }
+        })
+		if(method == "stroke"){
+        	this.ctx.stroke();
+		} else if (method == "fill"){
+			this.ctx.fill();
+		}
+    }
+
+	fillText(string, x,y){
+		let pos = this.calcPos(new Vector(x,y));
+		this.ctx.fillText(string, pos.x,pos.y);
+	}
 } // }}}
+
+class UI { ///{{{
+	constructor(ctx){
+		this.ctx = ctx;
+	}
+
+	text(string, x,y){
+		ctx.fillText(string, x,y);
+	}
+} ///}}}
 
 class Rocket { //{{{
     points = [new Vector(13,0), new Vector(-13,-10), new Vector(-13,10)];
@@ -68,8 +116,12 @@ class Rocket { //{{{
 	isAlive = true;
 	justShot = false;
 
-    constructor(x,y){
-        this.p = new Vector(canvas.width/2, canvas.height/2);
+    constructor(game,x=0,y=0){
+		// Game holds a reference to mostly everything, so objects can access other objects 
+		this.game = game;
+		// If position is not passed, it defaults to (0,0)
+		// (No reason to accept a custom position for rocket, it should always spawn at 0,0)
+        this.p = new Vector(x,y);
 		for(let i = 0; i < 3; i++){
 			this.points[i].x += 5;
 		}
@@ -80,45 +132,59 @@ class Rocket { //{{{
 
 		this.v.multiplyApply(Math.pow(this.friction, delta))
 		
-
-        if(key[87] == true){
-            // Thrust forward
-            let thrustAcc = Utils.getForceByAngle(this.rotation);
-			this.a = thrustAcc.copy().normalise();
-			this.a.multiplyApply(200);
-
-
-        }else {
-			this.a.set(0,0);
-        }
-        if(key[65] == true){
-			if(this.rotationVel > 0){
+		if(this.isAlive){
+			if(key[87] == true){
+				// Thrust forward
+				let thrustAcc = Utils.getForceByAngle(this.rotation);
+				this.a = thrustAcc.copy().normalise();
+				this.a.multiplyApply(200);
+			} else {
+				this.a.set(0,0);
+			}
+			if(key[65] == true){
+				if(this.rotationVel > 0){
+					this.rotationVel = 0;
+				}
+				if(this.rotationVel  > -200){
+					this.rotationVel -= 50;
+				}
+			}
+			if(key[68] == true){
+				if(this.rotationVel < 0){
+					this.rotationVel = 0;
+				}
+				if(this.rotationVel < 200){
+					this.rotationVel += 50;
+				}
+			}
+			if(key[65] != true && key[68] != true){
+				if(this.rotationVel > 1){
+					this.rotationVel -= 50;
+				} else if (this.rotationVel < -1){
+					this.rotationVel += 50;
+				} else {
+					this.rotationVel = 0;
+				}
+			}
+			if(this.rotation < 0){this.rotation += 360}
+			if(this.rotation >= 360){this.rotation -= 360}
+			if(key[38] && !this.justShot){
+				this.shoot(this.rotation);
+				this.justShot = true;
+			}
+			if(key[38] == false && this.justShot){
+				this.justShot = false;
+			}
+		} else {
+			if(this.rotationVel > 1){
+				this.rotationVel -= 10;
+			} else if (this.rotationVel < -1){
+				this.rotationVel += 10;
+			} else {
 				this.rotationVel = 0;
 			}
-			if(this.rotationVel  > -200){
-				this.rotationVel -= 50;
-			}
-        }
-        if(key[68] == true){
-			if(this.rotationVel < 0){
-				this.rotationVel = 0;
-			}
-			if(this.rotationVel < 200){
-				this.rotationVel += 50;
-			}
-        }
-		if(key[65] != true && key[68] != true){
-			this.rotationVel = 0;
 		}
-        if(this.rotation < 0){this.rotation += 360}
-        if(this.rotation >= 360){this.rotation -= 360}
-		if(key[38] && !this.justShot){
-			this.shoot(this.rotation);
-			this.justShot = true;
-		}
-		if(key[38] == false && this.justShot){
-			this.justShot = false;
-		}
+
 
 
 		// updating all bullets
@@ -155,6 +221,7 @@ class Rocket { //{{{
 			}
 
 			// Bullet Update
+			this.bullets[i].oldScreenP = this.bullets[i].p.copy();
 			this.bullets[i].p.addApply(this.bullets[i].v.multiply(delta));
 
 
@@ -193,15 +260,16 @@ class Rocket { //{{{
     }
 
 	shoot(angle){
-		let vel = Utils.getForceByAngle(angle);  // Velocity of bullet
+		let vel = Utils.getForceByAngle(angle);  // Velocity of bullet calculated from angle
 		vel.normaliseApply();
 		this.v.addApply(vel.multiply(-5));  // backfiring force (ie force acting back on rocketship)
+
 		const POWER = 3000;
 		vel.multiplyApply(POWER);
 		vel.addApply(this.v);  // Current velocity of ship transferred to bullet
 
-		let pos = this.p.copy();
-		pos.add(vel.multiply(0.016));
+		let pos = this.p.copy(); // Copy of rocket position
+		console.log(pos)
 
 		this.bullets.push(new Bullet(pos, vel))  /// New bullet instance of Bullet
 
@@ -212,12 +280,13 @@ class Rocket { //{{{
 
     draw (delta){
         let points = Utils.rotatePoints(this.points, Math.PI/180 * this.rotation);
-        Utils.DrawPoints(this.p, points, ctx, "stroke");
+        this.game.camera.drawPath(this.p, points, "stroke");
 		
-		game.ctx.fillText("Acc " + Math.round(this.a.x) + "  " + Math.round(this.a.y), 10, 200);
-		game.ctx.fillText("Vel " + Math.round(this.v.x )+ "  " + Math.round(this.v.y), 10, 220);
-		game.ctx.fillText("Mag " + this.v.getMagnitude(), 10, 240);
-		game.ctx.fillText("Rot " + this.rotation, 10, 250);
+		this.game.ui.text("Acc " + Math.round(this.a.x) + "  " + Math.round(this.a.y), 10, 200);
+		this.game.ui.text("Vel " + Math.round(this.v.x )+ "  " + Math.round(this.v.y), 10, 220);
+		this.game.ui.text("Mag " + this.v.getMagnitude(), 10, 240);
+		this.game.ui.text("Rot " + this.rotation, 10, 250);
+		this.game.camera.fillRect(this.p.x, this.p.y, 10,10)
 		// drawing all bullets
 		for(let i = 0; i < this.bullets.length; i++){
 			
@@ -225,7 +294,8 @@ class Rocket { //{{{
 			if(this.bullets[i].oldScreenP != null){
 				// Curr and Old position are different, ie draw a line
 				let bulletPos = game.camera.calcPos(this.bullets[i].p);
-				let bulletOldPos = this.bullets[i].oldScreenP;
+				//let bulletOldPos = this.bullets[i].oldScreenP;
+				let bulletOldPos = game.camera.calcPos(this.bullets[i].oldScreenP);
 				
 				ctx.beginPath();
 				ctx.moveTo(bulletPos.x, bulletPos.y);
@@ -233,7 +303,7 @@ class Rocket { //{{{
 				ctx.stroke();
 				ctx.closePath();
 			}
-			this.bullets[i].oldScreenP = game.camera.calcPos(this.bullets[i].p);
+			//this.bullets[i].oldScreenP = game.camera.calcPos(this.bullets[i].p);
 		}
     }
 
@@ -253,6 +323,7 @@ class Rock { // {{{
 
 
     constructor(game, position){
+		this.game = game;
 		// If position not passed, generate random position
 		// else, use passed position
 		if(position == undefined){
@@ -270,7 +341,6 @@ class Rock { // {{{
 			this.p = position.copy();
 		}
 
-        
 
         // Constructing random rock figure
         let r = Math.random()*15+10; // approx. radius
@@ -312,7 +382,7 @@ class Rock { // {{{
     }
 
     draw(){
-        Utils.DrawPoints(this.p, this.points, ctx, "stroke");
+		this.game.camera.drawPath(this.p, this.points, "stroke");
 		return;
 		//debug
 		/*
@@ -330,7 +400,7 @@ class Rock { // {{{
 }
 // }}}
 
-class Bullet {
+class Bullet { //{{{
 	radius = 3;
 	timeRemaining = 7;
 	constructor(position, velocity){
@@ -338,4 +408,4 @@ class Bullet {
 		this.oldScreenP = null;  // This is not world position, it is the position on the canvas (ie after camera is involved)
 		this.v = velocity;
 	}
-}
+} //}}}

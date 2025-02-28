@@ -5,10 +5,13 @@ class Game {
     constructor(ctx){
 
         this.ctx = ctx;
-        this.rocket = new Rocket();
+        this.rocket = new Rocket(this);
         this.stars = [];
         this.rocks = [];
-		this.camera = new Camera(0,0,canvas.width,canvas.height);
+		// Camera is offset by half of screen size to set the camera focussed at rocket, which is at (0,0)
+		// Camera position is of top left corner of camera size
+		this.camera = new Camera(-canvas.width/2,-canvas.height/2,canvas.width,canvas.height,ctx);
+		this.ui = new UI(ctx)
 		this.xx = 10;
 		this.xy = +1;
 
@@ -33,31 +36,38 @@ class Game {
 			this.initialStamp = timestamp; // Marks First frame
 		} 
 		let timerun = timestamp - this.initialStamp;
-
 		let delta = (timestamp - this.prevstamp)/1000;  // around 60fps
 		delta = Math.min(delta, 0.04); // Setting max limit at 0.04 to make sure delta does not go too high
-		
 		this.prevstamp = timestamp;
 
 
 
 
 		// Object updates
-		if(this.rocket.isAlive){
-  	    	this.rocket.update(delta);
-		}
-
+  	    this.rocket.update(delta);
 
 		// Update rocks
 		let countRocksNear = 0; // Number of rocks closeby
-		this.rocks.forEach((r)=>{
+		for(let i = 0; i < this.rocks.length; i++){
+			let r = this.rocks[i];
 			r.update();
 
-			if(r.p.x > this.camera.p.x - this.camera.width && r.p.x < this.camera.p.x + (2*this.camera.width)
-			&& r.p.y > this.camera.p.y - this.camera.height && r.p.y < 2*this.camera.height){
+
+			// A^2 + B^2 = C^2
+			// Distance between rock and rocket  (not squared)
+			// So just hard code a target distance that isnt rooted, so a large number
+			let dist = (this.rocket.p.x-r.p.x)**2 + (this.rocket.p.y-r.p.y)**2
+
+			if(dist < canvas.width**2){
 				countRocksNear += 1;
 			}
-		});
+			if(dist > (canvas.width*2)**2){
+				this.rocks.splice(i,1);
+				i -= 1;
+			}
+		}
+
+
 
 		// Adding more rocks to scene
 		// this.rocks.push(new Rock(this));
@@ -83,7 +93,7 @@ class Game {
 
         requestAnimationFrame(this.update.bind(this));
 		/* Debugging: Simulate fps (low and high framerate)
-		let wantedfps = this.fps
+		let wantedfps = 4
 		if(this.xx <= 0){this.xy = +1}
 		if(this.xx >= 100){this.xy = -1}
 		this.xx += this.xy * delta * 10;
@@ -144,7 +154,10 @@ class Game {
 
         this.rocks.forEach((r)=>{
             r.draw();
+			let dist = Math.sqrt((this.rocket.p.x-r.p.x)**2 + (this.rocket.p.y-r.p.y)**2)
+			this.camera.fillText(dist, r.p.x, r.p.y)
         });
+
         this.rocket.draw(delta);
     }
 }

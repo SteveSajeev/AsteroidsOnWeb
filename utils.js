@@ -107,25 +107,5 @@ class Utils {
         return a;
     }
 
-    static DrawPoints(origin, points, ctx, method="stroke"){
-        /* points -> array of {x,y} objects or Vector
-         * ctx    -> Context of canvas to draw to
-         * method -> "stroke" or "fill" will be called */
-
-        ctx.beginPath();
-        points.forEach((p,i)=>{
-			let screenP = game.camera.calcPos(origin.add(p));
-            if(i == 0){
-                ctx.moveTo(screenP.x, screenP.y);
-                return;
-            }
-            ctx.lineTo(screenP.x, screenP.y);
-            if(i == points.length-1){
-				screenP = game.camera.calcPos(origin.add(points[0]));
-				ctx.lineTo(screenP.x, screenP.y);
-            }
-        })
-        ctx.stroke();
-    }
 
 } 
