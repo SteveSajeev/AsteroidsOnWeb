@@ -1,6 +1,8 @@
 # AsteroidsOnWeb
 ### A fun little rocket game
 
+## Play Now -> AsteroidsOnWeb[https://stevesajeev.github.io/AsteroidsOnWeb/]
+
 A game where you wander around in rockets, blasting asteroids with bullets.
 (Thats all there is for now, more to come)
 
