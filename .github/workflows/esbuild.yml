@@ -26,10 +26,11 @@ jobs:
         run: npm ci
 
       - name: Build site
-        run: npm run build
-        run: mkdir dist
-        run: cp public/* dist/
-        run: cp build/* dist/
+        run: |
+          npm run build
+          mkdir dist
+          cp public/* dist/
+          cp build/* dist/
 
       - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v3
