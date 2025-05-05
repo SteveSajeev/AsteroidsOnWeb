@@ -4,7 +4,8 @@
   "description": "## Play Now -> AsteroidsOnWeb[https://stevesajeev.github.io/AsteroidsOnWeb/]",
   "main": "app.js",
   "scripts": {
-    "dev": "nodemon --exec 'esbuild --bundle src/app.js --outfile=build/bundled_app.js --sourcemap'"
+    "dev": "nodemon --exec 'esbuild --bundle src/app.js --outfile=build/bundled_app.js --sourcemap'",
+    "build": "esbuild --bundle src/app.js --outfile=build/bundled_app.js"
   },
   "repository": {
     "type": "git",
