@@ -1,5 +1,5 @@
 // {{{
-function Vector(x,y){
+export function Vector(x,y){
 	this.x = x;
 	this.y = y;
 }
@@ -72,7 +72,7 @@ Vector.prototype.getMagnitude = function(){
 // }}}
 
 
-class Utils {
+export class Utils {
     static rotatePoint (Vect,a){
         var {x,y} = Vect;
         y = -y;

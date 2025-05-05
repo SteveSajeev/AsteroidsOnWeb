@@ -1,3 +1,5 @@
+import { Vector } from "./utils"
+import { Renderer, Rocket, Rock, Camera } from "./objects";
 class Game {
 	prevstamp = 0;
 	initialStamp = 0;
@@ -107,10 +109,10 @@ class Game {
 		this.draw(delta);
 
 		this.fps = Math.random()<0.9?this.fps:Math.round(1/delta);
-		ctx.fillText("Delt " + delta, 10, 30);
-		ctx.fillText("FPS " + this.fps, 10, 40);
-		ctx.fillText("xx " + this.xx, 10, 50);
-		ctx.fillText("xy " + this.xy, 10, 60);
+		this.ctx.fillText("Delt " + delta, 10, 30);
+		this.ctx.fillText("FPS " + this.fps, 10, 40);
+		this.ctx.fillText("xx " + this.xx, 10, 50);
+		this.ctx.fillText("xy " + this.xy, 10, 60);
 		if(this.gameStarted){
 			ctx.fillText("rocksNear " + countRocksNear, 10, 70);
 		}
@@ -140,3 +142,4 @@ class Game {
     }
 }
 
+export default Game;
