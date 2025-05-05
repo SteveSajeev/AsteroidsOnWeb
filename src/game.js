@@ -1,5 +1,10 @@
-import { Vector } from "./utils"
-import { Renderer, Rocket, Rock, Camera } from "./objects";
+import { Vector } from "./vector";
+import { Rocket } from "./rocket";
+import { Rock } from "./rock";
+import { Camera } from "./camera";
+import { Renderer } from "./renderer";
+
+
 class Game {
 	prevstamp = 0;
 	initialStamp = 0;
